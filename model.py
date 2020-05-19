@@ -9,12 +9,13 @@ import math
 
 class Model(object):
 
-    def __init__(self, vocabulary_size, embedding_size, num_sampled, lr, valid_examples):
+    def __init__(self, vocabulary_size, embedding_size, num_sampled, lr, valid_examples, num_true):
         self.vocabulary_size = vocabulary_size
         self.embedding_size = embedding_size
         self.num_sampled = num_sampled
         self.lr = lr
         self.valid_examples = valid_examples
+        self.num_true = num_true
 
         self.train()
 
@@ -33,6 +34,7 @@ class Model(object):
                 biases=nce_biases,
                 labels=y_labels,
                 inputs=embed,
+                num_true=self.num_true,
                 num_sampled=self.num_sampled,
                 num_classes=self.vocabulary_size))
         return loss
@@ -40,7 +42,7 @@ class Model(object):
     def train(self):
         with tf.name_scope('inputs'):
             self.train_inputs = tf.placeholder(tf.int32, shape=[None])
-            self.train_labels = tf.placeholder(tf.int32, shape=[None, 1])
+            self.train_labels = tf.placeholder(tf.int32, shape=[None, self.num_true])
             self.valid_dataset = tf.constant(self.valid_examples, dtype=tf.int32)
 
         # Look up embeddings for inputs.

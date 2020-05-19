@@ -29,8 +29,9 @@ flags.DEFINE_integer('vocabulary_size', 50000, 'vocabulary size')
 flags.DEFINE_integer('embedding_size', 128, 'Dimension of the embedding vector. ')
 flags.DEFINE_integer('num_sampled', 64, 'negative sample num')
 flags.DEFINE_float('lr', 1.0, ' init learning rate')
-flags.DEFINE_integer('skip_window', 1, 'How many words to consider left and right.')
-flags.DEFINE_integer('num_skips', 2, 'How many times to reuse an input to generate a label.')
+flags.DEFINE_integer('skip_window', 2, 'How many words to consider left and right.')
+flags.DEFINE_integer('num_skips', 4, 'How many times to reuse an input to generate a label.')
+flags.DEFINE_integer('num_true', 1, 'Actual number of positive samples')
 
 flags.DEFINE_integer('batch_size', 128, 'train bacth size')
 flags.DEFINE_integer('valid_size', 16, 'Random set of words to evaluate similarity on.')
@@ -43,6 +44,7 @@ flags.DEFINE_string('image_file', image_file, 'result save file')
 
 flags.DEFINE_boolean('is_train', True, 'whether to Training model or not')
 flags.DEFINE_integer('num_steps', 10000, ' train num steps')
+flags.DEFINE_integer('epoch', 50, 'training epoch')
 
 
 class SG(object):
@@ -59,7 +61,8 @@ class SG(object):
                                embedding_size=FLAGS.embedding_size,
                                num_sampled=FLAGS.num_sampled,
                                lr=FLAGS.lr,
-                               valid_examples=self.valid_examples)
+                               valid_examples=self.valid_examples,
+                               num_true=FLAGS.num_true)
 
     def train(self):
         '''
@@ -68,6 +71,8 @@ class SG(object):
         '''
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        train_batch_num = int(len(self.data) / FLAGS.batch_size)
+
         # Step 5: Begin training.
         with tf.Session(config=config, graph=self.graph) as sess:
 
@@ -80,57 +85,60 @@ class SG(object):
             # Open a writer to write summaries.
             writer = tf.summary.FileWriter(FLAGS.log_dir, sess.graph)
             average_loss = 0
-            for step in range(FLAGS.num_steps):
-                batch_inputs, batch_labels = generate_batch(self.data, FLAGS.batch_size, FLAGS.num_skips,
-                                                            FLAGS.skip_window)
-                feed_dict = {
-                    self.model.train_inputs: batch_inputs,
-                    self.model.train_labels: batch_labels
-                }
+            for i in range(FLAGS.epoch):
+                for j in range(train_batch_num):
+                    step = i*train_batch_num+j
+                    batch_inputs, batch_labels = generate_batch(self.data, FLAGS.batch_size, FLAGS.num_skips,
+                                                                FLAGS.skip_window)
+                    feed_dict = {
+                        self.model.train_inputs: batch_inputs,
+                        self.model.train_labels: batch_labels
+                    }
 
-                # Define metadata variable.
-                run_metadata = tf.RunMetadata()
+                    # Define metadata variable.
+                    run_metadata = tf.RunMetadata()
 
-                # We perform one update step by evaluating the optimizer op (including it
-                # in the list of returned values for session.run()
-                # Also, evaluate the merged op to get all summaries from the returned
-                # "summary" variable. Feed metadata variable to session for visualizing
-                # the graph in TensorBoard.
-                _, summary, loss_val = sess.run([self.model.train_op, merged, self.model.loss],
-                                                feed_dict=feed_dict,
-                                                run_metadata=run_metadata)
-                average_loss += loss_val
+                    # We perform one update step by evaluating the optimizer op (including it
+                    # in the list of returned values for session.run()
+                    # Also, evaluate the merged op to get all summaries from the returned
+                    # "summary" variable. Feed metadata variable to session for visualizing
+                    # the graph in TensorBoard.
+                    _, summary, loss_val = sess.run([self.model.train_op, merged, self.model.loss],
+                                                    feed_dict=feed_dict,
+                                                    run_metadata=run_metadata)
+                    average_loss += loss_val
 
-                # Add returned summaries to writer in each step.
-                writer.add_summary(summary, step)
-                # Add metadata to visualize the graph for the last run.
-                if step == (FLAGS.num_steps - 1):
-                    writer.add_run_metadata(run_metadata, 'step%d' % step)
+                    # Add returned summaries to writer in each step.
+                    writer.add_summary(summary, step)
+                    # Add metadata to visualize the graph for the last run.
+                    if step == (FLAGS.num_steps - 1):
+                        writer.add_run_metadata(run_metadata, 'step%d' % step)
 
-                if step % 2000 == 0:
-                    if step > 0:
-                        average_loss /= 2000
-                    # The average loss is an estimate of the loss over the last 2000
-                    # batches.
-                    print('Average loss at step ', step, ': ', average_loss)
-                    average_loss = 0
+                    if step % 2000 == 0:
+                        if step > 0:
+                            average_loss /= 2000
+                        # The average loss is an estimate of the loss over the last 2000
+                        # batches.
+                        print('Average loss at step ', step, ': ', average_loss)
+                        average_loss = 0
 
-                # Note that this is expensive (~20% slowdown if computed every 500 steps)
-                if (step+1) % 10000 == 0:
-                    sim = self.model.similarity.eval()
-                    for i in range(FLAGS.valid_size):
-                        valid_word = self.reverse_dictionary[self.valid_examples[i]]
-                        top_k = 8  # number of nearest neighbors
-                        nearest = (-sim[i, :]).argsort()[1:top_k + 1]
-                        log_str = 'Nearest to %s:' % valid_word
+                    # Note that this is expensive (~20% slowdown if computed every 500 steps)
+                    if (step+1) % 10000 == 0:
+                        sim = self.model.similarity.eval()
+                        for k in range(FLAGS.valid_size):
+                            valid_word = self.reverse_dictionary[self.valid_examples[k]]
+                            top_k = 8  # number of nearest neighbors
+                            nearest = (-sim[k, :]).argsort()[1:top_k + 1]
+                            log_str = 'Nearest to %s:' % valid_word
 
-                        print(log_str, ', '.join([self.reverse_dictionary[nearest[k]] for k in range(top_k)]))
+                            print(log_str, ', '.join([self.reverse_dictionary[nearest[k]] for k in range(top_k)]))
             final_embeddings = self.model.normalized_embeddings.eval()
-
             # Save the model for checkpoints.
             saver.save(sess, FLAGS.save_path)
             plot(final_embeddings, self.reverse_dictionary, FLAGS.image_file)
+
         writer.close()
+        sess.close()
 
     def evaluate(self):
         '''
@@ -149,6 +157,9 @@ def main(_):
     del words  # 删除words节省内存
     print('Most common words (+UNK)', count[:5])
     print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
+    batch, labels = generate_batch(data, batch_size=8, num_skips=2, skip_window=1)
+    for i in range(8):
+        print(batch[i], reverse_dictionary[batch[i]], '->', labels[i, 0], reverse_dictionary[labels[i, 0]])
 
     # We pick a random validation set to sample nearest neighbors. Here we limit
     # the validation samples to the words that have a low numeric ID, which by

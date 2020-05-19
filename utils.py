@@ -12,9 +12,8 @@ from sklearn.manifold import TSNE
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
 
-data_index = 0
-def load_stopwords(stopwords_file):
 
+def load_stopwords(stopwords_file):
     stop_words = set()
     fp = open(stopwords_file, 'r', encoding='utf-8')
     lines = fp.readlines()
@@ -22,6 +21,7 @@ def load_stopwords(stopwords_file):
         stop_words.add(line.strip())
     fp.close()
     return stop_words
+
 
 def read_data(file_in):
     """
@@ -54,6 +54,9 @@ def build_dataset(words, n_words):
     count[0][1] = unk_count
     reversed_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
     return data, count, dictionary, reversed_dictionary
+
+
+data_index = 0
 
 
 def generate_batch(data, batch_size, num_skips, skip_window):
@@ -92,18 +95,17 @@ def plot_with_labels(low_dim_embs, labels, filename, fonts=None):
         x, y = low_dim_embs[i, :]
         plt.scatter(x, y)
         plt.annotate(label,
-                    fontproperties=fonts,
-                    xy=(x, y),
-                    xytext=(5, 2),
-                    textcoords='offset points',
-                    ha='right',
-                    va='bottom')
+                     fontproperties=fonts,
+                     xy=(x, y),
+                     xytext=(5, 2),
+                     textcoords='offset points',
+                     ha='right',
+                     va='bottom')
 
     plt.savefig(filename, dpi=800)
 
 
 def plot(final_embeddings, reverse_dictionary, filename):
-
     # 为了在图片上能显示出中文
     # font = FontProperties(fname=r"c:\windows\fonts\simsun.ttc", size=14)
 
