@@ -4,10 +4,13 @@
 # @Version：V 0.1
 # @File : utils.py
 import collections
+import pickle
 import random
 import re
 
+
 import numpy as np
+import tensorflow as tf
 from sklearn.manifold import TSNE
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
@@ -86,6 +89,56 @@ def generate_batch(data, batch_size, num_skips, skip_window):
     # Backtrack a little bit to avoid skipping words in the end of a batch
     data_index = (data_index - span) % len(data)
     return batch, labels
+
+
+# 该函数用于统计 TFRecord 文件中的样本数量(总数)
+def total_sample(file_name):
+    sample_nums = 0
+    for record in tf.python_io.tf_record_iterator(file_name):
+        sample_nums += 1
+    return sample_nums
+
+
+def reader_tfrecord(file_name, batch_size, capacity, min_after_dequeue):
+    name_to_features = {
+        "input_id": tf.FixedLenFeature([], tf.int64),
+        "label": tf.FixedLenFeature([], tf.int64),
+    }
+    filename_queue = tf.train.string_input_producer([file_name])
+    reader = tf.TFRecordReader()
+    _, serialized_example = reader.read(filename_queue)
+    features = tf.parse_single_example(serialized_example, features=name_to_features)
+    input_id = tf.cast(features['input_id'], tf.int64)
+    label = tf.cast(features['label'], tf.int64)
+
+    input_ids_batch, labels_batch = tf.train.shuffle_batch([input_id, label], batch_size=batch_size
+                                                           , capacity=capacity, min_after_dequeue=min_after_dequeue
+                                                           , allow_smaller_final_batch=False)
+
+    total_num = total_sample(file_name)
+    data_batch = {}
+    data_batch['input_ids'] = input_ids_batch
+    data_batch['labels'] = labels_batch
+    data_batch['total_num'] = total_num
+
+    return data_batch
+
+
+def load_dict(file_in):
+    fp = open(file_in, 'rb')
+    word2id = pickle.load(fp)
+    id2word = pickle.load(fp)
+
+    fp.close()
+    return word2id, id2word
+
+
+def load_valid_examples(file_in):
+    fp = open(file_in, 'rb')
+    valid_examples = pickle.load(fp)
+
+    fp.close()
+    return valid_examples
 
 
 def plot_with_labels(low_dim_embs, labels, filename, fonts=None):
