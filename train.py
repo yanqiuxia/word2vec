@@ -47,7 +47,7 @@ flags.DEFINE_integer('num_steps', 10000, ' train num steps')
 flags.DEFINE_integer('epoch', 50, 'training epoch')
 
 
-class SG(object):
+class SGNS(object):
     def __init__(self, data, dictionary, reverse_dictionary, valid_examples):
 
         self.data = data
@@ -169,16 +169,16 @@ def main(_):
     valid_window = 100  # Only pick dev samples in the head of the distribution.
     valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 
-    sg = SG(data=data,
+    sgns = SGNS(data=data,
             dictionary=dictionary,
             reverse_dictionary=reverse_dictionary,
             valid_examples=valid_examples)
     if FLAGS.is_train:
         print('begin training!')
-        sg.train()
+        sgns.train()
         print('Model training completed!')
     else:
-        sg.evaluate()
+        sgns.evaluate()
 
 
 if __name__ == '__main__':
