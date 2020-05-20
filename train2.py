@@ -36,7 +36,7 @@ flags.DEFINE_integer('skip_window', 2, 'How many words to consider left and righ
 flags.DEFINE_integer('num_skips', 4, 'How many times to reuse an input to generate a label.')
 flags.DEFINE_integer('num_true', 1, 'Actual number of positive samples')
 
-flags.DEFINE_integer('batch_size', 128, 'train bacth size')
+flags.DEFINE_integer('batch_size', 64, 'train bacth size')
 flags.DEFINE_integer('valid_size', 16, 'Random set of words to evaluate similarity on.')
 flags.DEFINE_integer('valid_window', 100, 'Only pick dev samples in the head of the distribution.')
 
@@ -67,6 +67,20 @@ class SGNS(object):
                            lr=FLAGS.lr,
                            valid_examples=self.valid_examples,
                            num_true=FLAGS.num_true)
+
+    def creat_session(self):
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        self.sess = tf.Session(config=config)
+        self.coord = tf.train.Coordinator()
+        self.threads = tf.train.start_queue_runners(self.sess, self.coord)
+
+    def close_session(self):
+        # 请求线程结束
+        self.coord.request_stop()
+        # 等待线程终止
+        self.coord.join(self.threads)
+        self.sess.close()
 
     def train(self):
         '''
@@ -129,16 +143,12 @@ class SGNS(object):
                     average_loss = 0
 
                 # Note that this is expensive (~20% slowdown if computed every 500 steps)
-                if (step + 1) % 10000 == 0:
-                    sim = self.model.similarity.eval()
-                    for k in range(FLAGS.valid_size):
-                        valid_word = self.reverse_dictionary[self.valid_examples[k]]
-                        top_k = 8  # number of nearest neighbors
-                        nearest = (-sim[k, :]).argsort()[1:top_k + 1]
-                        log_str = 'Nearest to %s:' % valid_word
+                if (step + 1) % 1000 == 0:
+                    '''
+                    '''
+                    self.evaluate()
 
-                        print(log_str, ', '.join([self.reverse_dictionary[nearest[k]] for k in range(top_k)]))
-        final_embeddings = self.model.normalized_embeddings.eval()
+        final_embeddings = self.model.normalized_embeddings.eval(session=self.sess)
         # Save the model for checkpoints.
         saver.save(self.sess, FLAGS.save_path)
         plot(final_embeddings, self.reverse_dictionary, FLAGS.image_file)
@@ -146,25 +156,34 @@ class SGNS(object):
         writer.close()
         self.sess.close()
 
-    def creat_session(self):
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=config)
-        self.coord = tf.train.Coordinator()
-        self.threads = tf.train.start_queue_runners(self.sess, self.coord)
-
-    def close_session(self):
-        # 请求线程结束
-        self.coord.request_stop()
-        # 等待线程终止
-        self.coord.join(self.threads)
-        self.sess.close()
-
     def evaluate(self):
         '''
 
         :return:
         '''
+        print('evaluate result： ')
+        # valid_embeddings = self.model.valid_embeddings.eval(session=self.sess)
+        # normalized_embeddings = self.model.normalized_embeddings.eval(session=self.sess)
+        similaritys = self.model.similarity.eval(session=self.sess)
+
+        for k in range(len(self.valid_examples)):
+            valid_word = self.reverse_dictionary[self.valid_examples[k]]
+            # valid_embedding = valid_embeddings[k]
+            # valid_embedding = valid_embedding.reshape([-1, 1])
+            # sim = tf.matmul(normalized_embeddings, valid_embedding).eval(session=self.sess)  #[vocab_size, 1]
+            sim = similaritys[k, :]
+            # sim = sim.reshape(len(normalized_embeddings))
+            top_k = 8  # number of nearest neighbors
+            sorted = np.argsort(sim)[::-1]
+            nearest = sorted[1:top_k + 1]
+
+            log_str = 'Nearest to %s:' % valid_word
+
+            print(log_str, ', '.join([self.reverse_dictionary[nearest[k]] for k in range(top_k)]))
+
+
+
+
 
 
 def main(_):

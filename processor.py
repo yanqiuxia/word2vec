@@ -87,7 +87,7 @@ def dev(dict_file, file_out1, file_out2):
     op1 = open(file_out1, 'w', encoding='utf-8')
     op2 = open(file_out2, 'wb')
 
-    valid_size = 128  # Random set of words to evaluate similarity on.
+    valid_size = 64  # Random set of words to evaluate similarity on.
     valid_window = 5000  # Only pick dev samples in the head of the distribution.
     valid_examples = np.random.choice(valid_window, valid_size, replace=False)
     valid_words = convert_by_vocab(id2word, valid_examples, unk='UNK')
@@ -154,13 +154,13 @@ if __name__ == '__main__':
     # file_out = './data/dict.pkl'
     # build_dict(file_in, file_out)
 
-    file_in = './data/test.txt'
-    dict_file = './data/dict.pkl'
-    file_out = './data/test.tf_record'
-    data_transformer(file_in, dict_file, file_out)
-
-
+    # file_in = './data/test.txt'
     # dict_file = './data/dict.pkl'
-    # file_out1 = './data/dev.txt'
-    # file_out2 = './data/dev.pkl'
-    # dev(dict_file, file_out1, file_out2)
+    # file_out = './data/test.tf_record'
+    # data_transformer(file_in, dict_file, file_out)
+
+
+    dict_file = './data/dict.pkl'
+    file_out1 = './data/dev.txt'
+    file_out2 = './data/dev.pkl'
+    dev(dict_file, file_out1, file_out2)

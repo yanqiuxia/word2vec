@@ -47,9 +47,9 @@ class Model(object):
 
         # Look up embeddings for inputs.
         with tf.name_scope('embeddings'):
-            embeddings = tf.Variable(
+            self.embeddings = tf.Variable(
                 tf.random_uniform([self.vocabulary_size, self.embedding_size], -1.0, 1.0))
-            embed = tf.nn.embedding_lookup(embeddings, self.train_inputs)
+            embed = tf.nn.embedding_lookup(self.embeddings, self.train_inputs)
 
             # Compute the average NCE loss for the batch.
             # tf.nce_loss automatically draws a new sample of the negative labels each
@@ -72,7 +72,9 @@ class Model(object):
 
         # Compute the cosine similarity between minibatch examples and all
         # embeddings.
-        norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
-        self.normalized_embeddings = embeddings / norm
-        valid_embeddings = tf.nn.embedding_lookup(self.normalized_embeddings, self.valid_dataset)
-        self.similarity = tf.matmul(valid_embeddings, self.normalized_embeddings, transpose_b=True)
+        # norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keepdims=True))
+        norm = tf.norm(self.embeddings, axis=1, keep_dims=True)
+        # tf.Print(embeddings, [norm, norm.shape], summarize=10, message='norm:')
+        self.normalized_embeddings = self.embeddings / norm
+        self.valid_embeddings = tf.nn.embedding_lookup(self.normalized_embeddings, self.valid_dataset)
+        self.similarity = tf.matmul(self.valid_embeddings, self.normalized_embeddings, transpose_b=True)
