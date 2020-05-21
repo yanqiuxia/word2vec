@@ -49,7 +49,7 @@ class Model(object):
         with tf.name_scope('embeddings'):
             self.embeddings = tf.Variable(
                 tf.random_uniform([self.vocabulary_size, self.embedding_size], -1.0, 1.0))
-            embed = tf.nn.embedding_lookup(self.embeddings, self.train_inputs)
+            embed_input = tf.nn.embedding_lookup(self.embeddings, self.train_inputs)
 
             # Compute the average NCE loss for the batch.
             # tf.nce_loss automatically draws a new sample of the negative labels each
@@ -59,7 +59,7 @@ class Model(object):
             #   http://papers.nips.cc/paper/5165-learning-word-embeddings-efficiently-with-noise-contrastive-estimation.pdf
         with tf.name_scope('loss'):
             # 使用nce_loss
-            self.loss = self.nce_loss(embed, self.train_labels)
+            self.loss = self.nce_loss(embed_input, self.train_labels)
 
         # Add the loss value as a scalar to summary.
         tf.summary.scalar('loss', self.loss)

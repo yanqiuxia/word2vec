@@ -36,7 +36,7 @@ flags.DEFINE_integer('skip_window', 2, 'How many words to consider left and righ
 flags.DEFINE_integer('num_skips', 4, 'How many times to reuse an input to generate a label.')
 flags.DEFINE_integer('num_true', 1, 'Actual number of positive samples')
 
-flags.DEFINE_integer('batch_size', 64, 'train bacth size')
+flags.DEFINE_integer('batch_size', 128, 'train bacth size')
 flags.DEFINE_integer('valid_size', 16, 'Random set of words to evaluate similarity on.')
 flags.DEFINE_integer('valid_window', 100, 'Only pick dev samples in the head of the distribution.')
 
@@ -49,7 +49,7 @@ flags.DEFINE_string('image_file', image_file, 'result save file')
 
 flags.DEFINE_boolean('is_train', True, 'whether to Training model or not')
 flags.DEFINE_integer('num_steps', 10000, ' train num steps')
-flags.DEFINE_integer('epoch', 50, 'training epoch')
+flags.DEFINE_integer('epoch', 2, 'training epoch')
 
 
 class SGNS(object):
@@ -89,8 +89,6 @@ class SGNS(object):
         '''
 
         train_batch_num = int(self.data['total_num'] / FLAGS.batch_size)
-
-
         self.sess.run(tf.global_variables_initializer())
         # Create a saver.
         saver = tf.train.Saver()
@@ -143,7 +141,7 @@ class SGNS(object):
                     average_loss = 0
 
                 # Note that this is expensive (~20% slowdown if computed every 500 steps)
-                if (step + 1) % 1000 == 0:
+                if (step + 1) % 10000 == 0:
                     '''
                     '''
                     self.evaluate()
@@ -154,7 +152,6 @@ class SGNS(object):
         plot(final_embeddings, self.reverse_dictionary, FLAGS.image_file)
 
         writer.close()
-        self.sess.close()
 
     def evaluate(self):
         '''
@@ -168,11 +165,8 @@ class SGNS(object):
 
         for k in range(len(self.valid_examples)):
             valid_word = self.reverse_dictionary[self.valid_examples[k]]
-            # valid_embedding = valid_embeddings[k]
-            # valid_embedding = valid_embedding.reshape([-1, 1])
-            # sim = tf.matmul(normalized_embeddings, valid_embedding).eval(session=self.sess)  #[vocab_size, 1]
+
             sim = similaritys[k, :]
-            # sim = sim.reshape(len(normalized_embeddings))
             top_k = 8  # number of nearest neighbors
             sorted = np.argsort(sim)[::-1]
             nearest = sorted[1:top_k + 1]
@@ -180,10 +174,6 @@ class SGNS(object):
             log_str = 'Nearest to %s:' % valid_word
 
             print(log_str, ', '.join([self.reverse_dictionary[nearest[k]] for k in range(top_k)]))
-
-
-
-
 
 
 def main(_):
