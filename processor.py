@@ -14,7 +14,7 @@ import numpy as np
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('skip_window', 1, 'How many words to consider left and right.')
+flags.DEFINE_integer('skip_window', 2, 'How many words to consider left and right.')
 flags.DEFINE_integer('num_skips', 2, 'How many times to reuse an input to generate a label.')
 flags.DEFINE_integer('n_words', 50000, 'max vocabulary size')
 
@@ -88,7 +88,7 @@ def dev(dict_file, file_out1, file_out2):
     op2 = open(file_out2, 'wb')
 
     valid_size = 64  # Random set of words to evaluate similarity on.
-    valid_window = 5000  # Only pick dev samples in the head of the distribution.
+    valid_window = 100  # Only pick dev samples in the head of the distribution.
     valid_examples = np.random.choice(valid_window, valid_size, replace=False)
     valid_words = convert_by_vocab(id2word, valid_examples, unk='UNK')
 
@@ -141,7 +141,7 @@ def data_transformer(file_in, dict_file, file_out):
                         writer.write(tf_example.SerializeToString())
                 word_index += 1
 
-    print("Wrote %d total instances", total_written)
+    print("Wrote %d total instances" %total_written)
     fp.close()
     dict_fp.close()
     writer.close()
@@ -154,13 +154,13 @@ if __name__ == '__main__':
     # file_out = './data/dict.pkl'
     # build_dict(file_in, file_out)
 
-    # file_in = './data/test.txt'
+    # file_in = './data/gzzf.txt'
     # dict_file = './data/dict.pkl'
-    # file_out = './data/test.tf_record'
+    # file_out = './data/data.tf_record'
     # data_transformer(file_in, dict_file, file_out)
 
 
-    dict_file = './data/dict.pkl'
-    file_out1 = './data/dev.txt'
-    file_out2 = './data/dev.pkl'
-    dev(dict_file, file_out1, file_out2)
+    # dict_file = './data/dict.pkl'
+    # file_out1 = './data/dev.txt'
+    # file_out2 = './data/dev.pkl'
+    # dev(dict_file, file_out1, file_out2)

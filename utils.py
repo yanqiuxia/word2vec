@@ -14,6 +14,7 @@ import tensorflow as tf
 from sklearn.manifold import TSNE
 from matplotlib.font_manager import FontProperties
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 
 
 def load_stopwords(stopwords_file):
@@ -160,10 +161,12 @@ def plot_with_labels(low_dim_embs, labels, filename, fonts=None):
 
 def plot(final_embeddings, reverse_dictionary, filename):
     # 为了在图片上能显示出中文
-    # font = FontProperties(fname=r"c:\windows\fonts\simsun.ttc", size=14)
+    # font = FontProperties(fname='/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf', size=14)
+    font = FontProperties(fname='/usr/share/fonts/MyFonts/YaHei.Consolas.1.11b.ttf', size=14)
+    rcParams['font.sans-serif'] = ['SimHei']
 
     tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
     plot_only = 500
     low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only, :])
     labels = [reverse_dictionary[i] for i in range(plot_only)]
-    plot_with_labels(low_dim_embs, labels, filename, fonts=None)
+    plot_with_labels(low_dim_embs, labels, filename, fonts=font)

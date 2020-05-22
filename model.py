@@ -41,15 +41,19 @@ class Model(object):
 
     def train(self):
         with tf.name_scope('inputs'):
-            self.train_inputs = tf.placeholder(tf.int32, shape=[None])
-            self.train_labels = tf.placeholder(tf.int32, shape=[None, self.num_true])
+            self.train_inputs = tf.placeholder(tf.int32, shape=[None]) #[batch_size]
+            self.train_labels = tf.placeholder(tf.int32, shape=[None, self.num_true]) #[batch_size]
             self.valid_dataset = tf.constant(self.valid_examples, dtype=tf.int32)
 
         # Look up embeddings for inputs.
         with tf.name_scope('embeddings'):
             self.embeddings = tf.Variable(
-                tf.random_uniform([self.vocabulary_size, self.embedding_size], -1.0, 1.0))
+                tf.random_uniform([self.vocabulary_size, self.embedding_size], -1.0, 1.0), name='word_embedding')
             embed_input = tf.nn.embedding_lookup(self.embeddings, self.train_inputs)
+
+            dir_embeddings = tf.Variable(
+                tf.random_uniform([self.vocabulary_size, self.embedding_size], -1.0, 1.0), name='dir_embedding')
+            dir_input = tf.nn.embedding_lookup(dir_embeddings, self.train_inputs)
 
             # Compute the average NCE loss for the batch.
             # tf.nce_loss automatically draws a new sample of the negative labels each
@@ -58,8 +62,12 @@ class Model(object):
             #   http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/
             #   http://papers.nips.cc/paper/5165-learning-word-embeddings-efficiently-with-noise-contrastive-estimation.pdf
         with tf.name_scope('loss'):
-            # 使用nce_loss
-            self.loss = self.nce_loss(embed_input, self.train_labels)
+            with tf.name_scope('vec'):
+                vec_loss = self.nce_loss(embed_input, self.train_labels)
+            with tf.name_scope('dir'):
+                dir_loss = self.nce_loss(dir_input, self.train_labels)
+
+            self.loss = vec_loss + dir_loss
 
         # Add the loss value as a scalar to summary.
         tf.summary.scalar('loss', self.loss)
@@ -69,6 +77,10 @@ class Model(object):
             optimizer = tf.train.GradientDescentOptimizer(self.lr)
 
         self.train_op = optimizer.minimize(self.loss)
+
+        var_list = tf.trainable_variables()
+        for var in var_list:
+            print("Variable: ", var)
 
         # Compute the cosine similarity between minibatch examples and all
         # embeddings.

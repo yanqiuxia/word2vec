@@ -13,6 +13,8 @@ from utils import load_dict, load_valid_examples, plot, reader_tfrecord
 input_file = './data/data.tf_record'
 dev_file = './data/dev.pkl'
 dict_file = './data/dict.pkl'
+vec_file = './data/vec.txt'
+
 
 version = 'v0.0.1'
 save_dir = os.path.join('./checkpoint', version)
@@ -24,7 +26,7 @@ log_dir = './logs'
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-image_file = './images/tsne3.png'
+image_file = './images/dsgns.png'
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -46,10 +48,11 @@ flags.DEFINE_string('dict_file', dict_file, 'the dict file path')
 flags.DEFINE_string('save_path', save_path, 'new model save path')
 flags.DEFINE_string('log_dir', log_dir, 'lor dir path')
 flags.DEFINE_string('image_file', image_file, 'result save file')
+flags.DEFINE_string('vec_file', vec_file, 'embedding save file')
 
 flags.DEFINE_boolean('is_train', True, 'whether to Training model or not')
 flags.DEFINE_integer('num_steps', 10000, ' train num steps')
-flags.DEFINE_integer('epoch', 2, 'training epoch')
+flags.DEFINE_integer('epoch', 30, 'training epoch')
 
 
 class SGNS(object):
@@ -81,6 +84,22 @@ class SGNS(object):
         # 等待线程终止
         self.coord.join(self.threads)
         self.sess.close()
+
+    def save_embedding(self, embeddings):
+        op = open(FLAGS.vec_file, 'w', encoding='utf-8')
+        op.write(str(len(self.dictionary.keys())))
+        op.write(' ')
+        op.write(str(FLAGS.embedding_size))
+        op.write('\n')
+        for i, word in enumerate(self.dictionary.keys()):
+            op.write(word)
+            op.write(' ')
+            vec = embeddings[i]
+            list_ = [str(i) for i in vec]
+            op.write(' '.join(list_))
+            op.write('\n')
+
+        op.close()
 
     def train(self):
         '''
@@ -146,9 +165,14 @@ class SGNS(object):
                     '''
                     self.evaluate()
 
+        # # Add metadata to visualize the graph for the last run.
+        # writer.add_run_metadata(run_metadata, 'step%d' % step)
+
         final_embeddings = self.model.normalized_embeddings.eval(session=self.sess)
         # Save the model for checkpoints.
         saver.save(self.sess, FLAGS.save_path)
+        # save embeddings
+        self.save_embedding(final_embeddings)
         plot(final_embeddings, self.reverse_dictionary, FLAGS.image_file)
 
         writer.close()
