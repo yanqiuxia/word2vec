@@ -9,14 +9,14 @@ import math
 
 class Model(object):
 
-    def __init__(self, vocabulary_size, embedding_size, num_sampled, lr, valid_examples, num_true):
+    def __init__(self, vocabulary_size, embedding_size, num_sampled, valid_examples, num_true):
         self.vocabulary_size = vocabulary_size
         self.embedding_size = embedding_size
         self.num_sampled = num_sampled
-        self.lr = lr
+
         self.valid_examples = valid_examples
         self.num_true = num_true
-
+        self.lr = tf.placeholder(tf.float32, [], name="lr")
         self.train()
 
     def nce_loss(self, embed, y_labels):
@@ -64,10 +64,10 @@ class Model(object):
         with tf.name_scope('loss'):
             with tf.name_scope('vec'):
                 vec_loss = self.nce_loss(embed_input, self.train_labels)
-            with tf.name_scope('dir'):
-                dir_loss = self.nce_loss(dir_input, self.train_labels)
+            # with tf.name_scope('dir'):
+            #     dir_loss = self.nce_loss(dir_input, self.train_labels)
 
-            self.loss = vec_loss + dir_loss
+            self.loss = vec_loss
 
         # Add the loss value as a scalar to summary.
         tf.summary.scalar('loss', self.loss)

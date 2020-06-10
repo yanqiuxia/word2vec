@@ -25,12 +25,12 @@ image_file = './images/tsne3.png'
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
-flags.DEFINE_integer('vocabulary_size', 50000, 'vocabulary size')
+flags.DEFINE_integer('vocabulary_size', 100000, 'vocabulary size')
 flags.DEFINE_integer('embedding_size', 128, 'Dimension of the embedding vector. ')
 flags.DEFINE_integer('num_sampled', 64, 'negative sample num')
 flags.DEFINE_float('lr', 1.0, ' init learning rate')
-flags.DEFINE_integer('skip_window', 2, 'How many words to consider left and right.')
-flags.DEFINE_integer('num_skips', 4, 'How many times to reuse an input to generate a label.')
+flags.DEFINE_integer('skip_window', 3, 'How many words to consider left and right.')
+flags.DEFINE_integer('num_skips', 3, 'How many times to reuse an input to generate a label.')
 flags.DEFINE_integer('num_true', 1, 'Actual number of positive samples')
 
 flags.DEFINE_integer('batch_size', 128, 'train bacth size')

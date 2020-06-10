@@ -100,7 +100,8 @@ def total_sample(file_name):
     return sample_nums
 
 
-def reader_tfrecord(file_name, batch_size, capacity, min_after_dequeue):
+def reader_tfrecord(file_name, batch_size, capacity, min_after_dequeue,
+                    shuffle=False):
     name_to_features = {
         "input_id": tf.FixedLenFeature([], tf.int64),
         "label": tf.FixedLenFeature([], tf.int64),
@@ -112,11 +113,16 @@ def reader_tfrecord(file_name, batch_size, capacity, min_after_dequeue):
     input_id = tf.cast(features['input_id'], tf.int64)
     label = tf.cast(features['label'], tf.int64)
 
-    input_ids_batch, labels_batch = tf.train.shuffle_batch([input_id, label], batch_size=batch_size
-                                                           , capacity=capacity, min_after_dequeue=min_after_dequeue
-                                                           , allow_smaller_final_batch=False)
+    if shuffle:
+        input_ids_batch, labels_batch = tf.train.shuffle_batch([input_id, label], batch_size=batch_size
+                                                               , capacity=capacity, min_after_dequeue=min_after_dequeue
+                                                               , allow_smaller_final_batch=False)
+    else:
+        input_ids_batch, labels_batch = tf.train.batch([input_id, label], batch_size=batch_size,
+                                                       capacity=capacity, allow_smaller_final_batch=False)
 
-    total_num = total_sample(file_name)
+    # total_num = total_sample(file_name)
+    total_num = 10000000
     data_batch = {}
     data_batch['input_ids'] = input_ids_batch
     data_batch['labels'] = labels_batch
@@ -170,3 +176,8 @@ def plot(final_embeddings, reverse_dictionary, filename):
     low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only, :])
     labels = [reverse_dictionary[i] for i in range(plot_only)]
     plot_with_labels(low_dim_embs, labels, filename, fonts=font)
+
+if __name__ == '__main__':
+    tf_data = './data/v0.0.1/data.tf_record'
+    num = total_sample(tf_data)
+    print(num)

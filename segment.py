@@ -6,7 +6,9 @@ import re
 import requests
 import traceback
 
-# import jieba
+import jieba
+import jieba.posseg as pseg
+
 # from pyhanlp import HanLP
 # HanLP = JClass("com.hankcs.hanlp.HanLP")
 
@@ -24,6 +26,20 @@ import traceback
 #             seg_words.append(word)
 #
 #     return seg_words
+
+
+def seg_byjieba(sentence, use_paddle=False, stop_words=None):
+
+    seg_words = []
+
+    # words = pseg.cut(sentence, use_paddle=use_paddle)
+    words = list(jieba.cut(sentence, use_paddle=use_paddle))
+
+    if words and stop_words:
+        for word in words:
+            if word not in stop_words:
+                seg_words.append(word)
+    return seg_words
 
 
 def seg_bytrs(text, url=None, stop_words=None):
@@ -85,3 +101,7 @@ def cut_sent(para):
 if __name__ == '__main__':
     '''
     '''
+    jieba.enable_paddle()# 启动paddle模式。 0.40版之后开始支持，早期版本不支持
+    text = "我来到北京清华大学。"
+    words = list(jieba.cut(text, use_paddle=True))
+    print(' '.join(words))
